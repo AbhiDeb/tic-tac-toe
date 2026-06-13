@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tic-Tac-Toe</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f0f1a;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #e0e0f0;
+    }
+
+    .game {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status {
+      font-size: 1.1rem;
+      letter-spacing: 1px;
+      min-height: 1.6em;
+      text-align: center;
+      color: #c4b5fd;
+      font-weight: 600;
+      transition: color 0.3s;
+    }
+
+    .status.winner { color: #34d399; font-size: 1.3rem; }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 10px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: #1e1e35;
+      border: 2px solid #2e2e50;
+      border-radius: 14px;
+      font-size: 2.8rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      user-select: none;
+    }
+
+    .cell:hover:not(.taken) {
+      background: #2a2a4a;
+      border-color: #5b5baf;
+      transform: scale(1.04);
+    }
+
+    .cell.taken { cursor: default; }
+
+    .cell.x { color: #a78bfa; }
+    .cell.o { color: #60a5fa; }
+    .cell.winning { background: #1a3a2a; border-color: #34d399; }
+
+    .scoreboard {
+      display: flex;
+      gap: 24px;
+    }
+
+    .score-card {
+      background: #1e1e35;
+      border: 1px solid #2e2e50;
+      border-radius: 12px;
+      padding: 12px 28px;
+      text-align: center;
+      min-width: 90px;
+    }
+
+    .score-card.active {
+      border-color: #a78bfa;
+      box-shadow: 0 0 16px rgba(167, 139, 250, 0.2);
+    }
+
+    .score-label {
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #6b6b9f;
+      margin-bottom: 4px;
+    }
+
+    .score-label.x { color: #a78bfa; }
+    .score-label.o { color: #60a5fa; }
+
+    .score-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .score-value.x { color: #a78bfa; }
+    .score-value.o { color: #60a5fa; }
+
+    .btn {
+      margin-top: 4px;
+      padding: 10px 32px;
+      background: transparent;
+      border: 2px solid #3b3b6b;
+      border-radius: 8px;
+      color: #c4b5fd;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-weight: 600;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn:hover {
+      background: #2a2a4a;
+      border-color: #a78bfa;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const WINNING_LINES = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6],
+    ];
+
+    function calcWinner(squares) {
+      for (const [a,b,c] of WINNING_LINES) {
+        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+          return { winner: squares[a], line: [a,b,c] };
+        }
+      }
+      return null;
+    }
+
+    function Cell({ value, onClick, isWinning }) {
+      return (
+        <button
+          className={`cell ${value ? 'taken' : ''} ${value ? value.toLowerCase() : ''} ${isWinning ? 'winning' : ''}`}
+          onClick={onClick}
+        >
+          {value}
+        </button>
+      );
+    }
+
+    function App() {
+      const [squares, setSquares] = useState(Array(9).fill(null));
+      const [xIsNext, setXIsNext] = useState(true);
+      const [score, setScore] = useState({ X: 0, O: 0 });
+
+      const result = calcWinner(squares);
+      const winner = result?.winner;
+      const winLine = result?.line ?? [];
+      const isDraw = !winner && squares.every(Boolean);
+
+      function handleClick(i) {
+        if (squares[i] || winner) return;
+        const next = squares.slice();
+        next[i] = xIsNext ? 'X' : 'O';
+        setSquares(next);
+
+        const res = calcWinner(next);
+        if (res) {
+          setScore(s => ({ ...s, [res.winner]: s[res.winner] + 1 }));
+        } else {
+          setXIsNext(!xIsNext);
+        }
+      }
+
+      function reset() {
+        setSquares(Array(9).fill(null));
+        setXIsNext(true);
+      }
+
+      let statusText;
+      if (winner) statusText = `Player ${winner} wins!`;
+      else if (isDraw) statusText = "It's a draw!";
+      else statusText = `Player ${xIsNext ? 'X' : 'O'}'s turn`;
+
+      return (
+        <div className="game">
+          <h1>Tic-Tac-Toe</h1>
+
+          <div className="scoreboard">
+            <div className={`score-card ${!winner && !isDraw && xIsNext ? 'active' : ''}`}>
+              <div className="score-label x">Player X</div>
+              <div className="score-value x">{score.X}</div>
+            </div>
+            <div className={`score-card ${!winner && !isDraw && !xIsNext ? 'active' : ''}`}>
+              <div className="score-label o">Player O</div>
+              <div className="score-value o">{score.O}</div>
+            </div>
+          </div>
+
+          <div className={`status ${winner || isDraw ? 'winner' : ''}`}>{statusText}</div>
+
+          <div className="board">
+            {squares.map((val, i) => (
+              <Cell
+                key={i}
+                value={val}
+                onClick={() => handleClick(i)}
+                isWinning={winLine.includes(i)}
+              />
+            ))}
+          </div>
+
+          <button className="btn" onClick={reset}>
+            {winner || isDraw ? 'Play Again' : 'Reset'}
+          </button>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
